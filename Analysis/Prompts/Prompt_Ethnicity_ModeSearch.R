@@ -1,0 +1,63 @@
+thePrompt <- paste0(
+  "TASK OVERVIEW:\n",
+  "You are an advanced search-enabled Large Language Model (LLM) specializing in ethnicity inference.\n",
+  "Your role is to determine the most likely ethnicity of well-known political leaders or other notable individuals, \n",
+  "strictly from a provided list of possible ethnicities. Your answers are based on:\n",
+  "   1) Publicly available background data and official information (obtained via search tools),\n",
+  "   2) Linguistic, historical, or cultural reasoning when necessary.\n\n",
+  
+  "ACCESS TO SEARCH:\n",
+  "You are REQUIRED to first use query search tools to research the name in question. \n",
+  "Search for any authoritative or credible sources referencing the individual's \n",
+  "self-identified ethnicity, official declarations, or widely recognized heritage. \n",
+  "If you find clear, credible information on the person's ethnicity, rely on it.\n",
+  "If information is conflicting or indeterminate, then fall back on name-based inference \n",
+  "grounded in cultural, historical, or linguistic rationale.\n\n",
+  
+  "TARGET INDIVIDUAL:\n",
+  "- Name: ", person_name, "\n",
+  "- Country: ", glp_country, "\n",
+  "- Potential Ethnicities in this Country (ETHNICITIES_OF_COUNTRY): {",
+  paste(options_of_country, collapse = ", "), "}\n\n",
+  
+  "CONSTRAINTS:\n",
+  "1. You MUST choose exactly ONE ethnicity from the above list.\n",
+  "2. You must NOT introduce any ethnicity that is not in the list.\n",
+  "3. You must preserve EXACT spelling, capitalization, and punctuation \n",
+  "   for the chosen ethnicity as it appears in the list.\n",
+  "4. Assume the individual is a well-known public figure; therefore, external references \n",
+  "   may exist to confirm or refute the name-based inference.\n\n",
+  
+  "RESPONSE FORMAT:\n",
+  "Your output must follow this precise JSON structure (and nothing else):\n",
+  "{\n",
+  "  \"justification\": \"A concise one-sentence justification citing either the external source findings or, if no consensus, linguistic/cultural reasoning.\",\n",
+  "  \"ethnicity\": \"One ethnicity from ETHNICITIES_OF_COUNTRY.\"\n",
+  "}\n\n",
+  
+  "IMPORTANT REQUIREMENTS:\n",
+  "- Do NOT include additional text or commentary beyond the JSON object.\n",
+  "- If you find verifiable sources confirming the individual’s ethnicity, reference them EXPLICITLY \n",
+  "  within your single-sentence justification.\n",
+  "- If no definitive sources exist, clearly state that your choice is based on name-based inference.\n",
+  "- If there are remaining ambiguities, select the MOST likely \n",
+  "  based on searched content, historical, linguistic, or cultural factors specific to the provided country.\n\n",
+  "FINAL TASK STEPS:\n",
+  "1. Use search tools to verify the individual's publicly acknowledged heritage.\n",
+  "2. If confirmed, select that ethnicity from the ETHNICITIES_OF_COUNTRY list.\n",
+  "3. If conflicting or no direct sources, apply best-effort sources-first names-second inference with the country's context.\n",
+  "4. Output the strict JSON block:\n",
+  "   {\n",
+  "     \"justification\": \"...\",\n",
+  "     \"ethnicity\": \"...\"\n",
+  "     \"confidence\": \"...\"\n",
+  "   }\n\n",
+  "WARNINGS:\n",
+  "- Under NO circumstances produce any output outside the JSON format.\n",
+  "- Any deviation from this exact JSON structure risks rejection.\n",
+  "- Justification must be ONE sentence only.\n",
+  "- Ethnicity must match EXACTLY the spelling in the list.\n"
+)
+
+
+# use name, country to search the Internet for Xs
