@@ -1,0 +1,29 @@
+# Ignore MacOS metadata files
+.DS_Store
+
+# R session files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Python compiled files and caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Local environment configuration
+.env
+
+# Data and output directories
+Data/
+SavedResults/
+
+# Log files
+*.log
