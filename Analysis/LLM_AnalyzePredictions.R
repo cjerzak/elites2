@@ -19,11 +19,11 @@
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4.1-nano-FastTest3"
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
   prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
-  
-  imputeType <- "party"; 
-  #imputeType <- "ethnicity"; 
-  if(imputeType=="party"){  pred_name_ <- "predicted_party"; truth_name_ <- "pol_party" }
-  if(imputeType=="ethnicity"){  pred_name_ <- "predicted_ethnicity"; truth_name_ <- "ethnic" }
+
+  analysis_var  <- "pol_party"                     # column in the dataset
+  analysis_type <- sub(".*_", "", analysis_var)     # used for prediction columns
+  pred_name_    <- paste0("predicted_", analysis_type)
+  truth_name_   <- analysis_var
   
   # load in persons level data 
   ethnicgroups <- haven::read_dta(groups_dat_loc)
@@ -62,10 +62,7 @@
       }
       
       # Ensure standard columns exist
-      # e.g., "glp_country", "ethnic", "predicted_ethnicity"
-      # If your dataset uses different column names, adjust here:
-      if(imputeType == "ethnicity"){ needed_cols <- c("glp_country", "ethnic", "predicted_ethnicity")} 
-      if(imputeType == "party"){ needed_cols <- c("glp_country", "pol_party", "predicted_party")} 
+      needed_cols <- c("glp_country", analysis_var, pred_name_)
       missing_cols <- setdiff(needed_cols, colnames(df))
       if (length(missing_cols) > 0) {
         warning("Missing columns in file ", file_path, ": ", paste(missing_cols, collapse=", "))
@@ -85,41 +82,17 @@
   # 3. Filter rows that actually have ground-truth for evaluation
   eval_data <- all_data %>%
     filter(
-      !is.na(ethnic), 
-      ethnic != "" ) %>%
+      !is.na(.data[[truth_name_]]),
+      .data[[truth_name_]] != "" ) %>%
     mutate(
-      # Coerce to character (if they’re haven_labelled or other) 
-      ethnic = as.character(ethnic),
-      predicted_ethnicity  = as.character(predicted_ethnicity),
-      # Sometimes the model might return NA or blank 
-      predicted_ethnicity  = if_else(is.na(predicted_ethnicity), 
-                                     "MissingPrediction", predicted_ethnicity)
+      !!truth_name_ := as.character(.data[[truth_name_]]),
+      !!pred_name_  := as.character(.data[[pred_name_]]),
+      !!pred_name_  := if_else(is.na(.data[[pred_name_]]),
+                              "MissingPrediction", .data[[pred_name_]])
     )
   
-  # drop predictions not in pool  
-  stop("XXX")
-  # sum(!eval_data$predicted_ethnicity %in% eval_data$ethnic)
-  eval_data <- eval_data[which(eval_data$predicted_ethnicity %in% eval_data$ethnic),]
-  cbind(all_data$pol_party, all_data$predicted_party)
-  table(all_data$glp_country)
-  mean(all_data$predicted_party == all_data$pol_party, na.rm = T)
-  mean((all_data$predicted_party == all_data$pol_party)[all_data$predicted_party_confidence=="Low"], na.rm = T)
-  mean((all_data$predicted_party == all_data$pol_party)[all_data$predicted_party_confidence=="High"], na.rm = T)
-  all_data[,c("person_name","pol_party", "predicted_party_confidence","predicted_party")][1,]
-  all_data$person_name
-  
-  # View(all_data[all_data$glp_country=="Egypt",])
-  
-  tapply(all_data$predicted_party_confidence, 
-         all_data$glp_country, 
-         table)
-  
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "Low"][1]
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "Low"][2]
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "Low"][3]
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "High"][1]
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "High"][2]
-  all_data$predicted_party_explanation[all_data$predicted_party_confidence == "High"][3]
+  # Drop predictions not found in the pool of valid options
+  eval_data <- eval_data[eval_data[[pred_name_]] %in% eval_data[[truth_name_]], ]
   
   
   # Quick check
@@ -152,35 +125,27 @@
   print(cm_overall)
   
   # (c) Additional metrics via yardstick
-  stop("XXX")
   metrics_overall <- eval_data %>%
     mutate(
-      truth    = factor(ethnic, levels = all_levels),
-      estimate = factor(predicted_ethnicity,  levels = all_levels)
+      truth    = factor(.data[[truth_name_]], levels = all_levels),
+      estimate = factor(.data[[pred_name_]],  levels = all_levels)
     ) %>%
     yardstick::metrics(truth = truth, estimate = estimate)
-  
-  
-  metrics_overall <- eval_data %>%
-    yardstick::metrics(
-      truth    = !!truth_sym,
-      estimate = !!pred_sym
-    )
   
   
   cat("\nYardstick Overall Metrics (Accuracy, Kappa, etc.):\n")
   print(metrics_overall)
   
-  acc_by_country <- tapply(eval_data$ethnic==eval_data$predicted_ethnicity,
-                           eval_data$glp_country, 
+  acc_by_country <- tapply(eval_data[[truth_name_]] == eval_data[[pred_name_]],
+                           eval_data$glp_country,
                            mean)
-  sort( acc_by_country )
-  
+  sort(acc_by_country)
+
   # For F2 specifically:
   f2_overall <- eval_data %>%
     mutate(
-      truth    = factor(ethnic, levels = all_levels),
-      estimate = factor(predicted_ethnicity,  levels = all_levels)
+      truth    = factor(.data[[truth_name_]], levels = all_levels),
+      estimate = factor(.data[[pred_name_]],  levels = all_levels)
     ) %>%
     f_meas(truth = truth, estimate = estimate, beta = 2)
   cat("\nOverall F2 (macro-averaged): ", f2_overall$.estimate, "\n")
@@ -191,27 +156,27 @@
   acc_by_country <- tapply(1:nrow(eval_data),
                            eval_data$glp_country,
                            function(i_){
-                             mean(eval_data[i_,]$ethnic == 
-                                    eval_data[i_,]$predicted_ethnicity)
+                             mean(eval_data[i_,][[truth_name_]] ==
+                                    eval_data[i_,][[pred_name_]])
                            })
   baseline_acc_by_country <- tapply(1:nrow(eval_data),
                                 eval_data$glp_country,
                                 function(i_){
-                                  mean(eval_data[i_,]$ethnic == 
-                                         names(table(eval_data[i_,]$ethnic))[
-                                           which.max(table(eval_data[i_,]$ethnic))]
+                                  mean(eval_data[i_,][[truth_name_]] ==
+                                         names(table(eval_data[i_,][[truth_name_]]))[ 
+                                           which.max(table(eval_data[i_,][[truth_name_]]))]
                                   )
                                 })
   nGroups_by_country <- tapply(1:nrow(eval_data),
                                eval_data$glp_country,
                                function(i_){
-                                 length(unique(eval_data[i_,]$ethnic))
+                                 length(unique(eval_data[i_,][[truth_name_]]))
                                })
   dispersion_by_country <- tapply(1:nrow(eval_data),
                                   eval_data$glp_country,
                                   function(i_){
                                     sum(prop.table(table(
-                                      eval_data[i_,]$ethnic
+                                      eval_data[i_,][[truth_name_]]
                                     ))^2)
                                   })
   plot(acc_by_country)
@@ -224,22 +189,20 @@
   head(sort(acc_by_country-baseline_acc_by_country),20)
   tail(sort(acc_by_country-baseline_acc_by_country),20)
   cbind(baseline_acc_by_country, acc_by_country)
-  
-  stop("XXX")
 
   # Using yardstick grouped approach for multi-class metrics by country
   by_country_metrics <- eval_data %>%
     mutate(
-      truth    = factor(ethnic, levels = all_levels),
-      estimate = factor(predicted_ethnicity,  levels = all_levels)
+      truth    = factor(.data[[truth_name_]], levels = all_levels),
+      estimate = factor(.data[[pred_name_]],  levels = all_levels)
     ) %>%
     group_by(glp_country) %>%
     metrics(truth = truth, estimate = estimate)
-  
+
   by_country_f2 <- eval_data %>%
     mutate(
-      truth    = factor(ethnic, levels = all_levels),
-      estimate = factor(predicted_ethnicity,  levels = all_levels)
+      truth    = factor(.data[[truth_name_]], levels = all_levels),
+      estimate = factor(.data[[pred_name_]],  levels = all_levels)
     ) %>%
     group_by(glp_country) %>%
     f_meas(truth = truth, estimate = estimate, beta = 2)
@@ -252,14 +215,14 @@
   # -------------------------------------------------------------------
   # 6. Metrics by type
   # -------------------------------------------------------------------
-  by_ethnicity <- eval_data %>%
-    group_by(ethnic) %>%
+  by_value <- eval_data %>%
+    group_by(.data[[truth_name_]]) %>%
     summarize(
       n = n(),
-      accuracy = mean(ethnic == predicted_ethnicity),
+      accuracy = mean(.data[[truth_name_]] == .data[[pred_name_]]),
       f2_macro = f_meas_vec(
-        truth    = as.factor(ethnic),
-        estimate = as.factor(predicted_ethnicity),
+        truth    = as.factor(.data[[truth_name_]]),
+        estimate = as.factor(.data[[pred_name_]]),
         beta     = 2,
         estimator= "macro"
       ),
@@ -268,22 +231,22 @@
     arrange(desc(n))
   
   cat("\nBy group Performance:\n")
-  print(by_ethnicity)
+  print(by_value)
   
   cat("\n--- Summarize by (Country, True values) ---\n")
   
-  by_country_ethnicity <- eval_data %>%
-    group_by(glp_country, ethnic) %>%
+  by_country_value <- eval_data %>%
+    group_by(glp_country, .data[[truth_name_]]) %>%
     summarise(
       n         = n(),
-      n_correct = sum(predicted_ethnicity == ethnic),
-      accuracy  = mean(predicted_ethnicity == ethnic),
+      n_correct = sum(.data[[pred_name_]] == .data[[truth_name_]]),
+      accuracy  = mean(.data[[pred_name_]] == .data[[truth_name_]]),
       .groups   = "drop"
     ) %>%
     arrange(glp_country, desc(n))
   
   cat("\nBy-Country and By-Ethnicity Summary:\n")
-  print(by_country_ethnicity)
+  print(by_country_value)
   
   # -------------------------------------------------------------------
   # 8. ALTERNATIVE: Cross-tab for confusion breakdown by country
@@ -292,11 +255,11 @@
   
   crosstab_by_country <- eval_data %>%
     group_by(glp_country) %>%
-    count(ethnic, predicted_ethnicity) %>%
-    group_by(glp_country, ethnic) %>%
+    count(.data[[truth_name_]], .data[[pred_name_]]) %>%
+    group_by(glp_country, .data[[truth_name_]]) %>%
     mutate(prop = n / sum(n)) %>%
     ungroup() %>%
-    arrange(glp_country, ethnic, desc(n))
+    arrange(glp_country, .data[[truth_name_]], desc(n))
   
   cat("\nCross-tab (Head):\n")
   print(head(crosstab_by_country, 30))  # Print first few rows
