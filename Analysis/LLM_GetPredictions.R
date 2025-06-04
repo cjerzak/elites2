@@ -11,10 +11,14 @@
   
   runName <- "SearchTestParty"
   
-  # imputeType <- "covar_name_here"; promptType <- "BaseSearch"
-  imputeType <- "party"; promptType <- "BaseSearch"
-  #imputeType <- "ethnicity"; promptType <- "BaseNameOnly"
-  #imputeType <- "ethnicity"; promptType <- "BaseSearch"
+  analysis_var <- "pol_party"            # column name of target covariate
+
+  get_analysis_key <- function(var) {
+    if (var == "ethnic") "ethnicity" else sub(".*_", "", var)
+  }
+  analysis_key <- get_analysis_key(analysis_var)  # derived from analysis_var
+  pred_name_   <- paste0("predicted_", analysis_key)
+  promptType   <- "BaseSearch"
   
   #LLMProvider <- "CustomLLM"; modelName <- "Llama3-8b-8192"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -52,18 +56,16 @@
   
   # Load data
   source('./Analysis/LLM_DataLocs.R')
-  ethnicgroups <- haven::read_dta(groups_dat_loc)
   data <- haven::read_dta(person_dat_loc, encoding = "UTF-8")
-  
+
   # drop NAs
-  ethnicgroups$ethnic[ethnicgroups$ethnic == " "] <- NA
-  ethnicgroups <- ethnicgroups[!is.na(ethnicgroups$ethnic),]
-  data$ethnic[data$ethnic == " "] <- NA
-  if(imputeType == "ethnicity"){ data <- data[!is.na(data$ethnic),] } 
-  if(imputeType == "party"){ data <- data[!is.na(data$pol_party),] } 
+  data[[analysis_var]][data[[analysis_var]] == " "] <- NA
+  data <- data[!is.na(data[[analysis_var]]), ]
   
   # clean some data 
-  data$pol_party <- trimws(gsub("\\s+", " ", data$pol_party))
+  if (analysis_var == "pol_party") {
+    data$pol_party <- trimws(gsub("\\s+", " ", data$pol_party))
+  }
   
   #data <- data[1:6,] # sample for quick execution
   if(runTest){
@@ -92,19 +94,12 @@
     data <- data[which(data$glp_country %in% KeepCountriesForTest),]
   }
   
-  # Create a map of country -> vector of possible ethnicities
-  ethnicity_map <- ethnicgroups %>%
+  # Build map of options per country for the target variable
+  data[[analysis_var]][data[[analysis_var]]==""] <- NA
+  options_map <- data %>%
     group_by(glp_country) %>%
-    summarise(ethnicities = list(unique(c( ethnic )))) %>% deframe()
-  
-  # process parties 
-  data$pol_party[data$pol_party==""] <- NA
-  party_map <- data %>%
-    group_by(glp_country) %>%
-    summarise(parties = list(unique(c( na.omit(pol_party) )))) %>% deframe()
-  
-  # generate options map 
-  eval(parse(text = sprintf("options_map <- %s_map",imputeType)))
+    summarise(options = list(unique(c(na.omit(.data[[analysis_var]]))))) %>%
+    deframe()
   
   # subset data 
   filtered_data <- data[data$glp_country %in% names(options_map), ]
@@ -115,25 +110,7 @@
   print("Data dimensions:")
   print(dim(filtered_data))
   
-  # sanities
-  { 
-  test_country <- "Brazil"
-  unique(data[data$glp_country==test_country,]$ethnic)
-  unique(ethnicgroups[ethnicgroups$glp_country==test_country,]$ethnic)
-  setdiff(data[data$glp_country==test_country,]$ethnic,
-          ethnicgroups[ethnicgroups$glp_country==test_country,]$ethnic)
-  
-  unique(data[data$glp_country=="Chile",]$ethnic)
-  unique(ethnicgroups[ethnicgroups$glp_country=="Chile",]$ethnic)
-  table(ethnicgroups$ethnic)
-  table(data$ethnic)
-  table(data$country)
-  
-  # spot check 
-  #ethnicgroups[ethnicgroups$glp_country== (country_spotcheck <-"Albania"),]$ethnic
-  #unique(data[data$glp_country == country_spotcheck,]$ethnic)
-  #unique(data[data$glp_country == country_spotcheck,]$ethnic)
-  }
+
   
   # Split by country
   list_by_country <- split(filtered_data, filtered_data$glp_country)
@@ -205,11 +182,11 @@
     # call in the prompt (this is called in as the {thePrompt} object)
     if(promptType == "BaseNameOnly"){ 
         source(sprintf("./Analysis/Prompts/Prompt_%s_ModeName.R", 
-                       sub("^(.)", "\\U\\1", imputeType, perl=TRUE)), local = TRUE) 
+                       sub("^(.)", "\\U\\1", analysis_key, perl=TRUE)), local = TRUE) 
     }
     if(promptType == "BaseSearch"){ 
         source(sprintf("./Analysis/Prompts/Prompt_%s_ModeSearch.R",
-                       sub("^(.)", "\\U\\1", imputeType, perl=TRUE)),local = TRUE) 
+                       sub("^(.)", "\\U\\1", analysis_key, perl=TRUE)),local = TRUE) 
     }
     
     # thePrompt <- "What movie won best picture in 2025?"
@@ -289,7 +266,7 @@
           next 
         }
         justification <- parsed_json$justification
-        the_message <- list("predicted_value" = eval(parse(text = sprintf("the_prediction <- parsed_json$%s",imputeType))),
+        the_message <- list("predicted_value" = eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_key))),
                             "predicted_value_explanation" = parsed_json$justification, 
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
@@ -337,7 +314,7 @@
                                               predicted_%s_confidence, 
                                               prompt),
                                               by = "row_id")
-      ', imputeType,imputeType,imputeType) ))
+      ', analysis_key,analysis_key,analysis_key) ))
     } else if (file.exists(csv_path)) {
       # or load from CSV if no RDS
       message(">>> Resuming from CSV: ", glp_country)
@@ -350,20 +327,20 @@
                                                   predicted_%s_confidence, 
                                                   prompt),
                                                   by = "row_id")
-      ', imputeType,imputeType,imputeType) ))
+      ', analysis_key,analysis_key,analysis_key) ))
     } else {
       # If no existing file, create a row_id to track progress
       df$row_id <- seq_len(nrow(df))
       eval(parse(text = sprintf('
       df$predicted_%s <- df$predicted_%s_explanation <- df$predicted_%s_confidence <- NA_character_
-        ', imputeType, imputeType, imputeType)))
+        ', analysis_key, analysis_key, analysis_key)))
       df$prompt             <- NA_character_
     }
     
     # Identify which rows need predictions
     eval(parse(text = sprintf('
             todo_idx <- which(is.na(df$predicted_%s) | df$predicted_%s == "")
-    ', imputeType, imputeType)))
+    ', analysis_key, analysis_key)))
     if (length(todo_idx) == 0) {
       message(">>> All predictions are already available for ", glp_country)
     } else {
@@ -396,7 +373,7 @@
       df[todo_idx,"predicted_%s"] <- unlist(predicted_responses$predicted_value)
       df[todo_idx,"predicted_%s_explanation"] <- unlist(predicted_responses$predicted_value_explanation)
       df[todo_idx,"predicted_%s_confidence"] <- unlist(predicted_responses$predicted_value_confidence)
-      ', imputeType,imputeType,imputeType)))
+      ', analysis_key,analysis_key,analysis_key)))
       df[todo_idx,"prompt"] <- unlist(predicted_responses$prompt)
       
       # View(df[,c("predicted_ethnicity","predicted_ethnicity_explanation","predicted_ethnicity_confidence")])
@@ -410,7 +387,7 @@
                             predicted_%s_confidence,
                             prompt),
               file = rds_path)
-              ',imputeType,imputeType,imputeType)))
+              ',analysis_key,analysis_key,analysis_key)))
     }
 
     # Write final results to disk
