@@ -10,11 +10,11 @@
   runTest <- TRUE
   
   runName <- "SearchTestParty"
-  
-  # imputeType <- "covar_name_here"; promptType <- "BaseSearch"
-  imputeType <- "party"; promptType <- "BaseSearch"
-  #imputeType <- "ethnicity"; promptType <- "BaseNameOnly"
-  #imputeType <- "ethnicity"; promptType <- "BaseSearch"
+
+  # Name of the covariate in the person-level data that we want to impute
+  analysis_var <- "pol_party"  # e.g. "pol_party" or "ethnic"
+  imputeType   <- sub(".*_", "", analysis_var)  # used for prompt file names
+  promptType   <- "BaseSearch"
   
   #LLMProvider <- "CustomLLM"; modelName <- "Llama3-8b-8192"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -59,8 +59,7 @@
   ethnicgroups$ethnic[ethnicgroups$ethnic == " "] <- NA
   ethnicgroups <- ethnicgroups[!is.na(ethnicgroups$ethnic),]
   data$ethnic[data$ethnic == " "] <- NA
-  if(imputeType == "ethnicity"){ data <- data[!is.na(data$ethnic),] } 
-  if(imputeType == "party"){ data <- data[!is.na(data$pol_party),] } 
+  data <- data[!is.na(data[[analysis_var]]), ]
   
   # clean some data 
   data$pol_party <- trimws(gsub("\\s+", " ", data$pol_party))
@@ -92,19 +91,12 @@
     data <- data[which(data$glp_country %in% KeepCountriesForTest),]
   }
   
-  # Create a map of country -> vector of possible ethnicities
-  ethnicity_map <- ethnicgroups %>%
+  # Generate mapping of possible options per country for the target variable
+  data[[analysis_var]][data[[analysis_var]] == ""] <- NA
+  options_map <- data %>%
     group_by(glp_country) %>%
-    summarise(ethnicities = list(unique(c( ethnic )))) %>% deframe()
-  
-  # process parties 
-  data$pol_party[data$pol_party==""] <- NA
-  party_map <- data %>%
-    group_by(glp_country) %>%
-    summarise(parties = list(unique(c( na.omit(pol_party) )))) %>% deframe()
-  
-  # generate options map 
-  eval(parse(text = sprintf("options_map <- %s_map",imputeType)))
+    summarise(options = list(unique(na.omit(.data[[analysis_var]])))) %>%
+    deframe()
   
   # subset data 
   filtered_data <- data[data$glp_country %in% names(options_map), ]
@@ -118,15 +110,15 @@
   # sanities
   { 
   test_country <- "Brazil"
-  unique(data[data$glp_country==test_country,]$ethnic)
+  unique(data[data$glp_country==test_country,][[analysis_var]])
   unique(ethnicgroups[ethnicgroups$glp_country==test_country,]$ethnic)
-  setdiff(data[data$glp_country==test_country,]$ethnic,
+  setdiff(data[data$glp_country==test_country,][[analysis_var]],
           ethnicgroups[ethnicgroups$glp_country==test_country,]$ethnic)
-  
-  unique(data[data$glp_country=="Chile",]$ethnic)
+
+  unique(data[data$glp_country=="Chile",][[analysis_var]])
   unique(ethnicgroups[ethnicgroups$glp_country=="Chile",]$ethnic)
   table(ethnicgroups$ethnic)
-  table(data$ethnic)
+  table(data[[analysis_var]])
   table(data$country)
   
   # spot check 
