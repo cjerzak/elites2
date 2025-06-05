@@ -76,18 +76,9 @@
   # View(all_data[grepl(all_data$glp_country,pattern="United King"),c("person_name",pred_name_,truth_name_)])
 
   # 3. Filter rows that actually have ground-truth for evaluation
-  eval_data <- all_data %>%
-    filter(
-      !is.na(.data[[analysis_var]]),
-      .data[[analysis_var]] != "" ) %>%
-    mutate(
-      !!analysis_var := as.character(.data[[analysis_var]]),
-      !!pred_name_   := as.character(.data[[pred_name_]]),
-      !!pred_name_   := if_else(is.na(.data[[pred_name_]]),
-                               "MissingPrediction", .data[[pred_name_]])
-    )
-  
-  # drop predictions not in pool  
+  eval_data <- all_data[!is.na(all_data[[truth_name_]]),]
+    
+  # drop predictions not in pool of options
   # sum(!eval_data[[pred_name_]] %in% eval_data[[truth_name_]])
   eval_data <- eval_data[eval_data[[pred_name_]] %in% eval_data[[truth_name_]], ]
   
@@ -97,13 +88,9 @@
 
 # obtain results
 {
-  #View(cbind(eval_data$glp_country,
-        #eval_data$ethnic,
-        #eval_data$predicted_ethnicity))
+  #View(cbind(eval_data$glp_country, eval_data$ethnic, eval_data$predicted_ethnicity))
   
-  # -------------------------------------------------------------------
   # 4. Overall Metrics
-  # -------------------------------------------------------------------
   # (a) Overall accuracy
   overall_accuracy <- mean(eval_data[[pred_name_]] == eval_data[[truth_name_]])
   cat("\nOverall Accuracy:", round(overall_accuracy, 4), "\n")

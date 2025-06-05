@@ -247,11 +247,11 @@
           next 
         }
         justification <- parsed_json$justification
-        the_message <- list("predicted_value" = eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_var))),
+        the_message <- list("predicted_value" = 
+                              eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_var))),
                             "predicted_value_explanation" = parsed_json$justification, 
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
-        browser()
         if(!the_prediction %in% options_of_country){ 
           print("Got an answer from LLM, but output format bad. Retrying...") 
           Sys.sleep(0.1)

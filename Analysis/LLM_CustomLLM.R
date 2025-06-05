@@ -19,6 +19,9 @@ if(INITIALIZED_CUSTOM_ENV_TAG){
   ) ), TRUE)
   theResponseText <- try(result$messages[[length(result$messages)]]$text(),TRUE)
   
+  # remove XML tags 
+  theResponseText <- gsub("<[^>]+>.*?</[^>]+>\\n?", "", theResponseText)
+  
   if(class(theResponseText) %in% "try-error"){ 
     response <- try(list("message"=NA, # NA upon failure 
                          "status_code"=100), TRUE) 
@@ -79,7 +82,7 @@ if(!INITIALIZED_CUSTOM_ENV_TAG){
     )
     
     # Initialize the agent
-    search_agent <- agents$create_react_agent(    # NEW
+    search_agent <- agents$create_react_agent(  
       model       = theLLM,
       tools       = theTools,
       checkpointer = MemorySaver() # keeps dialogue state

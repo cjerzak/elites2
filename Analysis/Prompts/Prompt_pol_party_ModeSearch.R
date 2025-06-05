@@ -33,7 +33,7 @@ thePrompt <- paste0(
   "Your output must follow this precise JSON structure (and nothing else):\n",
   "{\n",
   "  \"justification\": \"A concise one-sentence justification citing either the external source findings or, if no consensus, contextual inference from legislative or news records.\",\n",
-  "  \"party_id\": \"One party from PARTIES_OF_COUNTRY.\"\n",
+  "  \"pol_party\": \"One party from PARTIES_OF_COUNTRY.\"\n",
   "  \"confidence\": \"Confidence in your answer.\"\n",
   "}\n\n",
   
@@ -52,7 +52,7 @@ thePrompt <- paste0(
   "4. Output the strict JSON block:\n",
   "   {\n",
   "     \"justification\": \"...\",\n",
-  "     \"party_id,\": \"...\"\n",
+  "     \"pol_party,\": \"...\"\n",
   "     \"confidence\": \"...\"\n",
   "   }\n\n",
   
