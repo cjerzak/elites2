@@ -77,6 +77,8 @@
 
   # 3. Filter rows that actually have ground-truth for evaluation
   eval_data <- all_data[!is.na(all_data[[truth_name_]]),]
+  
+  cbind(all_data[[pred_name_]],all_data[[truth_name_]])
     
   # drop predictions not in pool of options
   # sum(!eval_data[[pred_name_]] %in% eval_data[[truth_name_]])
