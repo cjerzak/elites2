@@ -37,9 +37,7 @@
   # -- Set up multicore (adjust workers if needed) --
   plan(multisession(workers = parallel::detectCores() - 0L))
   
-  # ----------------------------------------------------------------------------
   # 1. READ & PREPARE DATA
-  # ----------------------------------------------------------------------------
   # Load data
   source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
 
@@ -139,7 +137,7 @@
     baseURL  <- "https://api.deepseek.com/chat/completions"; api_key  <- Sys.getenv("DEEPSEEK_API_KEY")
   }
   if (LLMProvider == "CustomLLM"){
-    source("./Analysis/LLM_CustomLLM.R", local = TRUE) # first run initializes env 
+    source(sprintf('%s/Analysis/LLM_CustomLLM.R',LocalGitHubLoc),local = TRUE)# first run initializes env 
   }
 
   # create output directory 
@@ -166,13 +164,13 @@
     
     # call in the prompt (this is called in as the {thePrompt} object)
     if(promptType == "BaseNameOnly"){ 
-        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeName.R", analysis_var), local = TRUE) 
+        source(sprintf('%s/Analysis/Prompt_%s_ModeName.R',
+                       LocalGitHubLoc, analysis_var),local = TRUE)
     }
     if(promptType == "BaseSearch"){ 
-        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeSearch.R", analysis_var),local = TRUE) 
+        source(sprintf("%s/Analysis/Prompts/Prompt_%s_ModeSearch.R", 
+                       LocalGitHubLoc, analysis_var),local = TRUE) 
     }
-    
-    # thePrompt <- "What movie won best picture in 2025?"
     
     # Prepare the request body
     body <- list(
@@ -216,7 +214,7 @@
       # mandatory sleep 
       Sys.sleep( wait_time )
       if(LLMProvider %in% c("CustomLLM")){ 
-        source('./Analysis/LLM_CustomLLM.R', local = TRUE) 
+        source(sprintf("%s/Analysis/LLM_CustomLLM.R", LocalGitHubLoc),local = TRUE) 
       }
 
       # If request fails or times out
@@ -253,6 +251,7 @@
                             "predicted_value_explanation" = parsed_json$justification, 
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
+        browser()
         if(!the_prediction %in% options_of_country){ 
           print("Got an answer from LLM, but output format bad. Retrying...") 
           Sys.sleep(0.1)
@@ -397,7 +396,6 @@
   })
   
   all_results <- list(); for (ctry in names(list_by_country)) {
-    message("\n==========================================")
     message("Processing country: ", ctry)
     
     df_ctry <- list_by_country[[ctry]]

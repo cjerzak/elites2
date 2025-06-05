@@ -12,6 +12,8 @@
   rm(list=ls())
   setwd("~/Dropbox/APIs/Elites2") ; options(error = NULL)
   LocalGitHubLoc <- "~/Documents/elites2"
+  
+  # load in input data 
   source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
   
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
