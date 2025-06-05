@@ -1,7 +1,6 @@
 # Script: LLM_AnalyzePredictions.R
 {
   # ------------------------------------------------------------------------------
-  #  EVALUATION SCRIPT FOR ETHNICITY INFERENCE
   #  - Reads each country's predictions from ./Prediction/*
   #  - Merges them
   #  - Computes metrics overall, by country, and by pred type
