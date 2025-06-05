@@ -168,7 +168,7 @@
                                   mean(eval_data[i_,][[truth_name_]] ==
                                          names(table(eval_data[i_,][[truth_name_]]))[
                                            which.max(table(eval_data[i_,][[truth_name_]]))
-                                  )
+                                      ])
                                 })
   nGroups_by_country <- tapply(1:nrow(eval_data),
                                eval_data$glp_country,
@@ -181,7 +181,6 @@
                                     sum(prop.table(table(
                                       eval_data[i_,][[truth_name_]]
                                     ))^2)
-                                  })
                                   })
   plot(acc_by_country)
   head(sort(acc_by_country))
