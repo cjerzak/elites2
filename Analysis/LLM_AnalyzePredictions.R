@@ -88,10 +88,9 @@
   cat("Total rows in 'eval_data': ", nrow(eval_data), "\n")
   cat("Countries found: ", paste(unique(eval_data$glp_country), collapse = ", "), "\n")
 
-# obtain results
-{
   #View(cbind(eval_data$glp_country, eval_data$ethnic, eval_data$predicted_ethnicity))
   
+  # obtain results
   # 4. Overall Metrics
   # (a) Overall accuracy
   overall_accuracy <- mean(eval_data[[pred_name_]] == eval_data[[truth_name_]])
@@ -116,15 +115,7 @@
       estimate = factor(.data[[pred_name_]],  levels = all_levels)
     ) %>%
     yardstick::metrics(truth = truth, estimate = estimate)
-  
-  
-  metrics_overall <- eval_data %>%
-    yardstick::metrics(
-      truth    = !!truth_sym,
-      estimate = !!pred_sym
-    )
-  
-  
+
   cat("\nYardstick Overall Metrics (Accuracy, Kappa, etc.):\n")
   print(metrics_overall)
   
@@ -202,32 +193,9 @@
   
   cat("\nMulti-class Metrics by Country (yardstick):\n")
   print(by_country_metrics)
-  cat("\nF2 by Country (yardstick):\n")
+  cat("F2 by Country (yardstick):")
   print(by_country_f2)
-  
-  # -------------------------------------------------------------------
-  # 6. Metrics by type
-  # -------------------------------------------------------------------
-  by_ethnicity <- eval_data %>%
-    group_by(.data[[truth_name_]]) %>%
-    summarize(
-      n = n(),
-      accuracy = mean(.data[[truth_name_]] == .data[[pred_name_]]),
-      f2_macro = f_meas_vec(
-        truth    = as.factor(.data[[truth_name_]]),
-        estimate = as.factor(.data[[pred_name_]]),
-        beta     = 2,
-        estimator= "macro"
-      ),
-      .groups = "drop"
-    ) %>%
-    arrange(desc(n))
-  
-  cat("\nBy group Performance:\n")
-  print(by_ethnicity)
-  
-  cat("\n--- Summarize by (Country, True values) ---\n")
-  
+
   by_country_ethnicity <- eval_data %>%
     group_by(glp_country, .data[[truth_name_]]) %>%
     summarise(
@@ -256,5 +224,4 @@
   
   cat("\nCross-tab (Head):\n")
   print(head(crosstab_by_country, 30))  # Print first few rows
-}
 }
