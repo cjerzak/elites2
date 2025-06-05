@@ -1,8 +1,5 @@
 # Script: LLM_GetPredictions.R
 {
-  ###############################################################################
-  # CODEBASE FOR ETHNICITY INFERENCE
-  
   # -- Clean workspace and set directories --
   rm(list = ls())
   setwd("~/Dropbox/APIs/Elites2") ; options(error = NULL) 
@@ -55,8 +52,7 @@
   # ----------------------------------------------------------------------------
   
   # Load data
-  source('./Analysis/LLM_DataLocs.R')
-  data <- haven::read_dta(person_dat_loc, encoding = "UTF-8")
+  source('./Analysis/LLM_LoadInputData.R')
 
   # drop NAs
   data[[analysis_var]][data[[analysis_var]] == " "] <- NA
