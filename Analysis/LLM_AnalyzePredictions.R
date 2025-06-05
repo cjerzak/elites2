@@ -16,19 +16,14 @@
   source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
   
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
-  prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
+  #prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
+  prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-llama-3.1-8b-instant"
 
   analysis_var <- "pol_party"            # column name of target covariate
   pred_name_   <- paste0("predicted_", analysis_var)
   truth_name_ <- analysis_var
   pred_sym  <- rlang::sym(pred_name_)
   truth_sym <- rlang::sym(truth_name_)
-  
-  # load in persons level data 
-  ethnicgroups <- haven::read_dta(groups_dat_loc)
-  ethnicpersons <- haven::read_dta(person_dat_loc, encoding = "UTF-8")
-  # View(ethnicgroups[ethnicgroups$glp_country=="Brazil",])
-  # View(ethnicgroups[grepl(ethnicgroups$glp_country,pattern="United Kingdom"),])
   
   # --- Libraries ---
   suppressPackageStartupMessages({
@@ -95,7 +90,6 @@
   # drop predictions not in pool  
   # sum(!eval_data[[pred_name_]] %in% eval_data[[truth_name_]])
   eval_data <- eval_data[eval_data[[pred_name_]] %in% eval_data[[truth_name_]], ]
-  
   
   # Quick check
   cat("Total rows in 'eval_data': ", nrow(eval_data), "\n")
