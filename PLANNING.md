@@ -24,5 +24,18 @@
 ## Note: LLM Providers
 - **OpenAI**  → allows for search  
 - **DeepSeek**  → cheap  
-- **Grok**  → enables Twitter/X  search 
+- **Grok**  → enables Twitter/X  search
+
+## Project requirements summary
+
+- The codebase should take a simple input string representing a covariate name
+  (for example, `"covar_name"`).
+- Given that string, generate the prompt and predictions describing the meaning
+  of the covariate.
+- Use the generated prompt to impute values for all leaders in the dataset.
+- Automatically evaluate the resulting predictions.
+- In a later step we will add an outer loop that iterates over key columns so
+  the imputation covers a single, unified dataset with evaluation metrics.
+- High‑ and all‑confidence imputed data will be made publicly available on
+  Hugging Face for downstream research.
 
