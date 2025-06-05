@@ -50,7 +50,6 @@
   # ----------------------------------------------------------------------------
   # 1. READ & PREPARE DATA
   # ----------------------------------------------------------------------------
-  
   # Load data
   source('./Analysis/LLM_LoadInputData.R')
 
@@ -161,7 +160,7 @@
                                  showWarnings = FALSE, recursive = TRUE)
   
   # ----------------------------------------------------------------------------
-  # 4. CORE PREDICTION FUNCTION
+  # CORE PREDICTION FUNCTION
   # ----------------------------------------------------------------------------
   
   # Single-call function that queries ChatGPT (or other LLM) for a single name
@@ -267,7 +266,6 @@
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
         if(!the_prediction %in% options_of_country){ 
-          browser()
           print("Got an answer from LLM, but output format bad. Retrying...") 
           Sys.sleep(0.1)
         }
@@ -423,26 +421,3 @@
   
   message("Done with LLM_GetPredictions.R call!")
 }
-
-# V1 --> use names only to complete task (only use name context)
-# --> a good baseline
-# --> complete this task 
-# --> focus performing task on Africa (Kenya as starting point)
-
-# V1.1 -> use names + marginal i.e. baseline probabilities to calibrate 
-
-# V2 --> use names + google search (in an ai agent-like manner) to complete task (use name + Internet information)
-# --> more similar to what actual RA would do 
-# --> most costly, but more informative 
-# --> POSSIBILITY 1 -> ask the model to figure out a lot of things at once (cheaper)
-# --> *POSSIBILITY 2 -> ask the model to figure out one thing at once.*
-
-# comparing when V1 and V2 give different answers
-# First get names, then get characteristics? 
-
-# note:
-# LLM providers
-# - Open AI  -> allows for search 
-# - DeepSeek - cheap
-# - Grok -> enables Twitter/X
-
