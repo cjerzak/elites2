@@ -11,21 +11,14 @@
   # Clean workspace (optional)
   rm(list=ls())
   setwd("~/Dropbox/APIs/Elites2") ; options(error = NULL)
-  source('./Analysis/LLM_DataLocs.R')
+  LocalGitHubLoc <- "~/Documents/elites2"
+  source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
   
-  #prediction_dir <- "./SavedResults/Pred-DeepSeek-deepseek-chat-FastTest"
-  #prediction_dir <- "./SavedResults/Pred-DeepSeek-deepseek-chat-FastTest2"
-  #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4.1-nano-FastTest3"
-  #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4.1-nano-FastTest3"
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
   prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
 
   analysis_var <- "pol_party"            # column name of target covariate
-  get_analysis_key <- function(var) {
-    if (var == "ethnic") "ethnicity" else sub(".*_", "", var)
-  }
-  analysis_key <- get_analysis_key(analysis_var)  # derived from analysis_var
-  pred_name_   <- paste0("predicted_", analysis_key)
+  pred_name_   <- paste0("predicted_", analysis_var)
   truth_name_ <- analysis_var
   pred_sym  <- rlang::sym(pred_name_)
   truth_sym <- rlang::sym(truth_name_)

@@ -6,22 +6,12 @@
   set.seed(999L)
   runTest <- TRUE
   
+  LocalGitHubLoc <- "~/Documents/elites2"
   runName <- "SearchTestParty"
-  
   analysis_var <- "pol_party"            # column name of target covariate
-
-  get_analysis_key <- function(var) {
-    if (var == "ethnic") "ethnicity" else sub(".*_", "", var)
-  }
-  analysis_key <- get_analysis_key(analysis_var)  # derived from analysis_var
-  pred_name_   <- paste0("predicted_", analysis_key)
   promptType   <- "BaseSearch"
-  
-  #LLMProvider <- "CustomLLM"; modelName <- "Llama3-8b-8192"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+
   LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
-  
-  # 70000 * 10 * 40
-  # (ethnicity, political party, etc.)
   
   #LLMProvider <- "OpenAI"; modelName <- "gpt-4o-mini-search-preview"
   #LLMProvider <- "OpenAI"; modelName <- "gpt-4o-search-preview"
@@ -51,7 +41,7 @@
   # 1. READ & PREPARE DATA
   # ----------------------------------------------------------------------------
   # Load data
-  source('./Analysis/LLM_LoadInputData.R')
+  source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
 
   # drop NAs
   data[[analysis_var]][data[[analysis_var]] == " "] <- NA
@@ -176,12 +166,10 @@
     
     # call in the prompt (this is called in as the {thePrompt} object)
     if(promptType == "BaseNameOnly"){ 
-        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeName.R", 
-                       sub("^(.)", "\\U\\1", analysis_key, perl=TRUE)), local = TRUE) 
+        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeName.R", analysis_var), local = TRUE) 
     }
     if(promptType == "BaseSearch"){ 
-        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeSearch.R",
-                       sub("^(.)", "\\U\\1", analysis_key, perl=TRUE)),local = TRUE) 
+        source(sprintf("./Analysis/Prompts/Prompt_%s_ModeSearch.R", analysis_var),local = TRUE) 
     }
     
     # thePrompt <- "What movie won best picture in 2025?"
@@ -261,7 +249,7 @@
           next 
         }
         justification <- parsed_json$justification
-        the_message <- list("predicted_value" = eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_key))),
+        the_message <- list("predicted_value" = eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_var))),
                             "predicted_value_explanation" = parsed_json$justification, 
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
@@ -308,7 +296,7 @@
                                               predicted_%s_confidence, 
                                               prompt),
                                               by = "row_id")
-      ', analysis_key,analysis_key,analysis_key) ))
+      ', analysis_var,analysis_var,analysis_var) ))
     } else if (file.exists(csv_path)) {
       # or load from CSV if no RDS
       message(">>> Resuming from CSV: ", glp_country)
@@ -321,20 +309,20 @@
                                                   predicted_%s_confidence, 
                                                   prompt),
                                                   by = "row_id")
-      ', analysis_key,analysis_key,analysis_key) ))
+      ', analysis_var,analysis_var,analysis_var) ))
     } else {
       # If no existing file, create a row_id to track progress
       df$row_id <- seq_len(nrow(df))
       eval(parse(text = sprintf('
       df$predicted_%s <- df$predicted_%s_explanation <- df$predicted_%s_confidence <- NA_character_
-        ', analysis_key, analysis_key, analysis_key)))
+        ', analysis_var, analysis_var, analysis_var)))
       df$prompt             <- NA_character_
     }
     
     # Identify which rows need predictions
     eval(parse(text = sprintf('
             todo_idx <- which(is.na(df$predicted_%s) | df$predicted_%s == "")
-    ', analysis_key, analysis_key)))
+    ', analysis_var, analysis_var)))
     if (length(todo_idx) == 0) {
       message(">>> All predictions are already available for ", glp_country)
     } else {
@@ -367,7 +355,7 @@
       df[todo_idx,"predicted_%s"] <- unlist(predicted_responses$predicted_value)
       df[todo_idx,"predicted_%s_explanation"] <- unlist(predicted_responses$predicted_value_explanation)
       df[todo_idx,"predicted_%s_confidence"] <- unlist(predicted_responses$predicted_value_confidence)
-      ', analysis_key,analysis_key,analysis_key)))
+      ', analysis_var,analysis_var,analysis_var)))
       df[todo_idx,"prompt"] <- unlist(predicted_responses$prompt)
       
       # View(df[,c("predicted_ethnicity","predicted_ethnicity_explanation","predicted_ethnicity_confidence")])
@@ -381,7 +369,7 @@
                             predicted_%s_confidence,
                             prompt),
               file = rds_path)
-              ',analysis_key,analysis_key,analysis_key)))
+              ',analysis_var,analysis_var,analysis_var)))
     }
 
     # Write final results to disk
