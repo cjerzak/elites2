@@ -17,7 +17,9 @@
   
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
   #prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
-  prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-llama-3.1-8b-instant"
+  #prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-llama-3.1-8b-instant"
+  #prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-qwen-qwq-32b"
+  prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-meta-llama_SL_llama-4-scout-17b-16e-instruct"
 
   analysis_var <- "pol_party"            # column name of target covariate
   pred_name_   <- paste0("predicted_", analysis_var)
@@ -93,6 +95,7 @@
   # obtain results
   # 4. Overall Metrics
   # (a) Overall accuracy
+  overall_accuracy <- mean(eval_data[[pred_name_]] == eval_data[[truth_name_]])
   overall_accuracy <- mean(eval_data[[pred_name_]] == eval_data[[truth_name_]])
   cat("\nOverall Accuracy:", round(overall_accuracy, 4), "\n")
   

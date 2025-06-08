@@ -11,7 +11,10 @@
   analysis_var <- "pol_party"            # column name of target covariate
   promptType   <- "BaseSearch"
 
-  LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  #LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  #LLMProvider <- "CustomLLM"; modelName <- "gemma2-9b-it"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   
   #LLMProvider <- "OpenAI"; modelName <- "gpt-4o-mini-search-preview"
   #LLMProvider <- "OpenAI"; modelName <- "gpt-4o-search-preview"
@@ -144,7 +147,8 @@
   dir.create(output_directory <- sprintf("./SavedResults/Pred-%s-%s-%s",
                                          runName,
                                          LLMProvider, 
-                                         modelName), 
+                                         gsub(modelName, pattern = "\\/", replace= "_SL_")
+                                         ), 
                                  showWarnings = FALSE, recursive = TRUE)
   
   # ----------------------------------------------------------------------------
@@ -243,6 +247,7 @@
           parsed_json <- try(fromJSON( raw_output ), T) 
         }
         if("try-error" %in% class(parsed_json)){
+          browser()
           print("ERROR IN PARSED OUTPUT")
           next 
         }
@@ -253,10 +258,11 @@
                             "predicted_value_confidence" = parsed_json$confidence, 
                             "prompt" = thePrompt)
         if(!the_prediction %in% options_of_country){ 
+          browser()
           print("Got an answer from LLM, but output format bad. Retrying...") 
           Sys.sleep(0.1)
         }
-        if(the_prediction %in% options_of_country){ return(the_message) }
+        if(the_prediction %in% options_of_country){ the_message; next } 
       }
     }
     
@@ -406,4 +412,7 @@
   # all_results[[1]][,c("ethnic","predicted_ethnicity")]
   
   message("Done with LLM_GetPredictions.R call!")
+  if(T == F){ 
+    source("~/Documents/elites2/Analysis/LLM_AnalyzePredictions.R")
+  }
 }
