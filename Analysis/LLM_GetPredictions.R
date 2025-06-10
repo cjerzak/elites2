@@ -11,9 +11,9 @@
   analysis_var <- "pol_party"            # column name of target covariate
   promptType   <- "BaseSearch"
 
-  #LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
-  LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  #LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "gemma2-9b-it"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   
   #LLMProvider <- "OpenAI"; modelName <- "gpt-4o-mini-search-preview"
@@ -91,7 +91,7 @@
   filtered_data <- data[data$glp_country %in% names(options_map), ]
   filtered_data <- filtered_data %>%
                       group_by(glp_country) %>% 
-                        slice_sample(n = 4) %>% 
+                        slice_sample(n = 10) %>% 
                           ungroup()
   print("Data dimensions:")
   print(dim(filtered_data))
@@ -201,7 +201,7 @@
     # Backoff for reliability (up to 5 attempts)
     wait_time   <- 1
     
-    for (attempt in seq_len(max_attempts <- 5)) {
+    for (attempt in seq_len(max_attempts <- 2)) {
       if(LLMProvider %in% c("OpenAI", "DeepSeek")){ 
         response <- try(
           POST(
@@ -218,7 +218,7 @@
       # mandatory sleep 
       Sys.sleep( wait_time )
       if(LLMProvider %in% c("CustomLLM")){ 
-        source(sprintf("%s/Analysis/LLM_CustomLLM.R", LocalGitHubLoc),local = TRUE) 
+        source(sprintf("%s/Analysis/LLM_CustomLLM.R", LocalGitHubLoc),local = TRUE)
       }
 
       # If request fails or times out
@@ -248,7 +248,7 @@
         }
         if("try-error" %in% class(parsed_json)){
           browser()
-          print("ERROR IN PARSED OUTPUT")
+          message("ERROR IN PARSED OUTPUT")
           next 
         }
         justification <- parsed_json$justification
@@ -262,9 +262,10 @@
           print("Got an answer from LLM, but output format bad. Retrying...") 
           Sys.sleep(0.1)
         }
-        if(the_prediction %in% options_of_country){ the_message; next } 
+        if(the_prediction %in% options_of_country){ return(the_message) } 
       }
     }
+    browser()
     
     # If all attempts fail
     return( list("predicted_value" = NA,
