@@ -11,7 +11,7 @@
   analysis_var <- "pol_party"            # column name of target covariate
   promptType   <- "BaseSearch"
 
-  LLMProvider <- "CustomLLM"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "gemma2-9b-it"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -380,6 +380,7 @@
 
     # Write final results to disk
     df$LLMProvider <- LLMProvider
+    df$CustomLLMBackend <- ifelse(LLMProvider == "CustomLLM", CustomLLMBackend, NA)
     df$modelName <- modelName
     df$promptType <- promptType
     df$runTest <- runTest

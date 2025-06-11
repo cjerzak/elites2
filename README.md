@@ -7,7 +7,7 @@ elites and then evaluates the results.
 ## Repository layout
 
 - `Analysis/LLM_GetPredictions.R` – fetches predictions from a selected LLM
-  (OpenAI, DeepSeek or a custom Groq agent).
+  (OpenAI, DeepSeek or a custom agent using Groq or Exo backends).
 - `Analysis/LLM_AnalyzePredictions.R` – combines per‑country results and
   computes accuracy statistics.
 - `Analysis/LLM_DataLocs.R` – small helper file that points to the expected
@@ -27,7 +27,7 @@ in git.
    etc.).
 2. The Python environment `CustomLLMSearch` is expected when using the custom
    search agent.  Required libraries can be installed with `pip` as noted inside
-   `LLM_CustomLLM.R`.
+ `LLM_CustomLLM.R`.
 3. Create a `.env` file in the repository root with any API keys you plan to
    use.  For example:
 
@@ -36,6 +36,8 @@ in git.
    OPENAI_API_KEY=...
    DEEPSEEK_API_KEY=...
    ```
+4. When using the custom agent, set `CustomLLMBackend` in
+   `LLM_GetPredictions.R` to either `"groq"` or `"exo"`.
 
 ## Running the pipeline
 
