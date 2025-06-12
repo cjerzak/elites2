@@ -228,3 +228,7 @@
   cat("\nCross-tab (Head):\n")
   print(head(crosstab_by_country, 30))  # Print first few rows
 }
+
+
+
+

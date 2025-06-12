@@ -9,6 +9,7 @@
   LocalGitHubLoc <- "~/Documents/elites2"
   runName <- "SearchTestParty"
   analysis_var <- "pol_party"            # column name of target covariate
+  #analysis_var <- "birth_place"            # column name of target covariate
   promptType   <- "BaseSearch"
 
   LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
