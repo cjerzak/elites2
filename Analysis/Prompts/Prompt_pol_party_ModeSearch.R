@@ -15,10 +15,11 @@ thePrompt <- paste0(
     "grounded in legislative records, news coverage, or the individual's own statements.\n\n",
     
     "TARGET INDIVIDUAL:\n",
-    "- Name: ", person_name, "\n",
-    "- Country: ", glp_country, "\n",
-    "- Potential Parties in this Country (PARTIES_OF_COUNTRY): {",
-    paste(options_of_country, collapse = ", "), "}\n\n",
+    "- Name: ", CleanText(person_name),
+    "\n", "- Country: ", glp_country, 
+    "\n", "- Potential Parties in this Country (PARTIES_OF_COUNTRY): {",
+        paste(CleanText(options_of_country), collapse = ", "), 
+    "}\n\n",
     
     "CONSTRAINTS:\n",
     "1. You MUST choose exactly ONE party from the above list.\n",
@@ -33,7 +34,7 @@ thePrompt <- paste0(
     "Your output must follow this precise JSON structure (and nothing else):\n",
     "{\n",
     "  \"justification\": \"A concise one-sentence justification citing either the external source findings or, if no consensus, contextual inference from legislative or news records.\",\n",
-    "  \"pol_party\": \"One party from PARTIES_OF_COUNTRY.\"\n",
+    "  \"pol_party\": \"One party from PARTIES_OF_COUNTRY.\",\n",
     "  \"confidence\": \"Confidence in your answer (High, Medium or Low).\"\n",
     "}\n\n",
     
@@ -52,7 +53,7 @@ thePrompt <- paste0(
     "4. Output the strict JSON block:\n",
     "   {\n",
     "     \"justification\": \"...\",\n",
-    "     \"pol_party,\": \"...\"\n",
+    "     \"pol_party\": \"...\",\n",
     "     \"confidence\": \"...\"\n",
     "   }\n\n",
     
@@ -62,3 +63,6 @@ thePrompt <- paste0(
     "- Justification must be ONE sentence only.\n",
     "- Party must match EXACTLY the spelling in the list.\n"
   )
+
+
+

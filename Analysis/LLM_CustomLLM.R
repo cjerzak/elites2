@@ -2,6 +2,9 @@
 {
 # Run the agent, if initialized 
 if(INITIALIZED_CUSTOM_ENV_TAG){
+    # thePrompt <- "What is the politicalparty of Scott Walker?"
+    # (theLLM$bind_tools(theTools))$invoke(input = thePrompt)
+    browser()
     raw_response <- try(theAgent$invoke(
         list(messages = list(list(role = "user", 
                                   content = thePrompt))),
@@ -52,6 +55,11 @@ if(!INITIALIZED_CUSTOM_ENV_TAG){
                                                         top_k_results = 3L,
                                                         doc_content_char_max = 500L))
       search <- community_tools$DuckDuckGoSearchRun(name = "Search")
+      
+      # llm XX
+      # wiki XX
+      # search ? -> VPN      
+      
 
       theTools <- list(wiki, 
                        search)
@@ -72,24 +80,21 @@ if(!INITIALIZED_CUSTOM_ENV_TAG){
       base_url <- system("ifconfig | grep 'inet ' | awk '{print $2}'", intern = TRUE)
       base_url <- sprintf("%s:52415", base_url[length(base_url)])
       
-      #exo_url <- sprintf("http://%s/v1/chat/completions",base_url)
       exo_url <- sprintf("http://%s/v1",base_url)
-      #exo_url <- sprintf("http://%s",base_url)
-      
+
       # import the ChatOpenAI class
       # https://python.langchain.com/docs/integrations/chat/
       # https://chatgpt.com/share/684ce13e-20b8-800f-b7a6-d3909cd9da02
-      #chat_models <- import("langchain_community.chat_models")
       chat_models <- import("langchain_openai")
+      source(sprintf('%s/Analysis/LLM_ExoLLMWrapper.R',LocalGitHubLoc), local = TRUE)
       
       # instantiate it against your Exo endpoint
-      theLLM <- chat_models$ChatOpenAI(
-        model_name            = modelName,
-        openai_api_base       = exo_url,
-        #default_headers = list("Content-Type"="application/json"),
-        temperature           = 0.01,
-        streaming             = TRUE
-      )
+      #theLLM <- chat_models$ChatOpenAI(
+      #  model_name            = modelName,
+      #  openai_api_base       = exo_url,
+      #  temperature           = 0.01,
+      #  streaming             = TRUE
+      #)
     
       # little sanity test for the exo model 
       if(T == F){
@@ -97,12 +102,6 @@ if(!INITIALIZED_CUSTOM_ENV_TAG){
         schema  <- import("langchain.schema",  convert = FALSE)
         sys_msg <- schema$SystemMessage(content = "You are a helpful assistant.")
         usr_msg <- schema$HumanMessage(content = "What model are you?") 
-        
-        
-        # wrap them in a list-of-lists as generate expects List[List[BaseMessage]]
-        theLLM$invoke(input = "What model are you?")
-        
-
         theLLM$invoke(input = "What is the capital of Egypt?")
         (theLLM$bind_tools(theTools))$invoke(input = "What is the capital of Egypt?")
         theLLM$generate( list( list(sys_msg, usr_msg) ) )
@@ -110,14 +109,13 @@ if(!INITIALIZED_CUSTOM_ENV_TAG){
     }
 
     # define search 
-    stop("XXX")
     theAgent <- agents$create_react_agent(
                       model        = theLLM,
                       tools        = theTools,
                       checkpointer = MemorySaver(),
                   )
     
-    # sanity check
+    # sanity checks
     if(T == F){
       search$description
       

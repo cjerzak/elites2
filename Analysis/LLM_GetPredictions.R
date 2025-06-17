@@ -15,7 +15,7 @@
 
   #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant";
   LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.1-8b"
-  #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "mistral-nemo"
+  #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.2-3b-bf16"
   #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "gemma2-9b-it"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -47,6 +47,7 @@
   # 1. READ & PREPARE DATA
   # Load data
   source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
+  source(sprintf('%s/Analysis/LLM_Helpers.R',LocalGitHubLoc))
 
   # drop NAs
   data[[analysis_var]][data[[analysis_var]] == " "] <- NA
@@ -160,10 +161,7 @@
                                          ), 
                                  showWarnings = FALSE, recursive = TRUE)
   
-  # ----------------------------------------------------------------------------
   # CORE PREDICTION FUNCTION
-  # ----------------------------------------------------------------------------
-  
   # Single-call function that queries ChatGPT (or other LLM) for a single name
   predict_value <- function(person_name, glp_country) {
 
