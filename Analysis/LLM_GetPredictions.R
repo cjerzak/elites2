@@ -3,16 +3,19 @@
   # -- Clean workspace and set directories --
   rm(list = ls())
   setwd("~/Dropbox/APIs/Elites2") ; options(error = NULL) 
-  set.seed(999L)
-  runTest <- TRUE
+  set.seed(999L); INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  runTest <- FALSE     
+  OuterSleep <- 2.
+  InnerSleep <- 10.
   
   LocalGitHubLoc <- "~/Documents/elites2"
   runName <- "SearchTestParty"
-  analysis_var <- "pol_party"            # column name of target covariate
-  #analysis_var <- "birth_place"            # column name of target covariate
+  analysis_var <- "pol_party"            # column name of target covariate, e.g., pol_party or birth_place
   promptType   <- "BaseSearch"
 
-  LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
+  #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant";
+  LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.1-8b"
+  #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "mistral-nemo"
   #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "gemma2-9b-it"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -89,25 +92,30 @@
     deframe()
   
   # subset data 
-  filtered_data <- data[data$glp_country %in% names(options_map), ]
-  filtered_data <- filtered_data %>%
-                      group_by(glp_country) %>% 
-                        slice_sample(n = 10) %>% 
-                          ungroup()
-  print("Data dimensions:")
-  print(dim(filtered_data))
+  data <- data[data$glp_country %in% names(options_map), ]
+  if(runTest){ 
+    # sample 10 people per country 
+    data <- data %>% 
+              group_by(glp_country) %>% 
+                 slice_sample(n = 10) %>% 
+                    ungroup()
+  }
   
-
+  # Drop countries 
+  data <- data[! (grepl(data$glp_country,pattern = "China") | 
+                 data$glp_country == "" | data$glp_country == " " | data$glp_country %in% c(117,84) |    
+                   is.na(data$glp_country)| 
+                   data$glp_country == "NA"),]
+  table(data$glp_country)
   
   # Split by country
-  list_by_country <- split(filtered_data, filtered_data$glp_country)
+  list_by_country <- split(data, data$glp_country)
+  print("nLeaders per country")
+  print(summary(unlist( lapply(list_by_country,nrow) )) )
+  sort(table(data$country))
   
-  # ----------------------------------------------------------------------------
-  # 2. ENCODING FIX
-  # ----------------------------------------------------------------------------
-  
-  # Function to detect encoding and attempt to fix "person_name" if needed
-  fix_encoding <- function(df) { 
+  # Function to detect encoding and attempt to fix `person_name`` if needed
+  fix_encoding <- function(df){ 
     if ("person_name" %in% colnames(df) && is.character(df$person_name)) {
       # Extract sample text
       sample_text <- df$person_name[1:min(nrow(df), 10)] 
@@ -198,13 +206,12 @@
       #body$tool_choice        <- "required"    
       body$web_search_options <- list(search_context_size = "low")
     }
-    
-    # Backoff for reliability (up to 5 attempts)
-    wait_time   <- 1
-    
+
+    # loop over try attempts 
     for (attempt in seq_len(max_attempts <- 2)) {
+      # get response 
       if(LLMProvider %in% c("OpenAI", "DeepSeek")){ 
-        response <- try(
+        raw_response <- response <- try(
           POST(
             url = baseURL,
             add_headers(Authorization = paste("Bearer", api_key)),
@@ -215,64 +222,70 @@
         response <- try(content(response, as = "text", encoding = "UTF-8"), T)
         content_parsed <- try(fromJSON( response ),T) 
       }
-
-      # mandatory sleep 
-      Sys.sleep( wait_time )
       if(LLMProvider %in% c("CustomLLM")){ 
         source(sprintf("%s/Analysis/LLM_CustomLLM.R", LocalGitHubLoc),local = TRUE)
       }
 
       # If request fails or times out
       if (inherits(response, "try-error")) {
-        Sys.sleep(wait_time); next
+        Sys.sleep(InnerSleep); next
       }
-      
       if (response$status_code != 200) { # Non-200, wait and retry
-        Sys.sleep(wait_time)
+        Sys.sleep(InnerSleep)
       }
       if (response$status_code == 200) { # Successfully obtain answer 
-        # if( length(content_parsed$choices$message$annotations[[1]]) > 0){ browser() }
         # print(content_parsed$choices$message)
         if(LLMProvider %in% c("OpenAI","DeepSeek") ){ raw_output <- try(content_parsed$choices$message$content,T) }
         if(LLMProvider %in% c("CustomLLM") ){ raw_output <- try(response$message,T) }
         
         # extract from the JSON
-        json_txt <- str_extract(raw_output,"(?<=```json\\n)[\\s\\S]*?(?=\\n```)")
+        json_txt <- str_extract(raw_output, "(?<=```json\\n)[\\s\\S]*?(?=\\n```)")
         json_txt <- ifelse(is.na(json_txt), yes= raw_output, no = json_txt)
         parsed_json <- try(fromJSON(json_txt),T)
         if("try-error" %in% class(parsed_json)){
           parsed_json <- try(fromJSON( str_extract(raw_output, 
                                                    "(?<=json\\n)[\\s\\S]*?(?=\\n```)") ), T) 
+          print(parsed_json)
         }
         if("try-error" %in% class(parsed_json)){
           parsed_json <- try(fromJSON( raw_output ), T) 
+          print(parsed_json)
         }
         if("try-error" %in% class(parsed_json)){
-          browser()
           message("ERROR IN PARSED OUTPUT")
+          print(parsed_json)
           next 
         }
-        justification <- parsed_json$justification
         the_message <- list("predicted_value" = 
-                              eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_var))),
+                               eval(parse(text = sprintf("the_prediction <- parsed_json$%s",analysis_var))),
                             "predicted_value_explanation" = parsed_json$justification, 
                             "predicted_value_confidence" = parsed_json$confidence, 
-                            "prompt" = thePrompt)
+                            "prompt" = thePrompt,
+                            "raw_output" = raw_response
+                            )
+        print( the_message[1:3] )
         if(!the_prediction %in% options_of_country){ 
-          browser()
-          print("Got an answer from LLM, but output format bad. Retrying...") 
-          Sys.sleep(0.1)
+          message("Got an answer from LLM, but output format bad. Retrying...") 
+          Sys.sleep( InnerSleep )
         }
-        if(the_prediction %in% options_of_country){ return(the_message) } 
+        if(the_prediction %in% options_of_country){ 
+          message("Got an answer from LLM, output format GOOD. Moving on.") 
+          return(the_message) 
+        } 
+        if(!the_prediction %in% options_of_country & attempt == max_attempts){ 
+          message("Got an answer from LLM, but output format BAD At max_attempts so returning result anyway.") 
+          return(the_message) 
+        } 
       }
     }
-    browser()
     
     # If all attempts fail
     return( list("predicted_value" = NA,
                  "predicted_value_explanation" = NA, 
                  "predicted_value_confidence" = NA, 
-                 "prompt" = NA) )
+                 "prompt" = NA,
+                 "raw_output" = raw_response
+                 ) )
   }
   
   # ----------------------------------------------------------------------------
@@ -301,7 +314,8 @@
                                               predicted_%s,
                                               predicted_%s_explanation, 
                                               predicted_%s_confidence, 
-                                              prompt),
+                                              prompt,
+                                              raw_output),
                                               by = "row_id")
       ', analysis_var,analysis_var,analysis_var) ))
     } else if (file.exists(csv_path)) {
@@ -314,7 +328,8 @@
                                                   predicted_%s,
                                                   predicted_%s_explanation, 
                                                   predicted_%s_confidence, 
-                                                  prompt),
+                                                  prompt,
+                                                  raw_output),
                                                   by = "row_id")
       ', analysis_var,analysis_var,analysis_var) ))
     } else {
@@ -350,8 +365,8 @@
         FUN = function(i) {
           # Predict
           res <- predict_value(df$person_name[i], df$glp_country[i])
+          Sys.sleep( OuterSleep )  # pause to mitigate rapid-fire requests
           pb$tick()
-          Sys.sleep(0.1)  # small pause to mitigate rapid-fire requests
           return(res)
         }
       )
@@ -364,6 +379,7 @@
       df[todo_idx,"predicted_%s_confidence"] <- unlist(predicted_responses$predicted_value_confidence)
       ', analysis_var,analysis_var,analysis_var)))
       df[todo_idx,"prompt"] <- unlist(predicted_responses$prompt)
+      df[todo_idx,"raw_output"] <- unlist(predicted_responses$raw_output)
       
       # View(df[,c("predicted_ethnicity","predicted_ethnicity_explanation","predicted_ethnicity_confidence")])
       # View(df[,c("pol_party", "predicted_party","predicted_party_explanation","predicted_party_confidence")])
@@ -374,7 +390,8 @@
                             predicted_%s, 
                             predicted_%s_explanation,
                             predicted_%s_confidence,
-                            prompt),
+                            prompt,
+                            raw_output),
               file = rds_path)
               ',analysis_var,analysis_var,analysis_var)))
     }
@@ -392,10 +409,7 @@
     return(df)
   }
   
-  # ----------------------------------------------------------------------------
-  # 7. MAIN EXECUTION
-  # ----------------------------------------------------------------------------
-  
+  # Run main prediction script 
   # Ensure each data frame has a row_id to track partial progress
   list_by_country <- lapply(list_by_country, function(df) {
     if (!"row_id" %in% colnames(df)) {
@@ -411,8 +425,6 @@
     out_ctry <- predict_and_save(df_ctry, ctry, output_directory)
     all_results[[ctry]] <- out_ctry
   }
-  
-  # all_results[[1]][,c("ethnic","predicted_ethnicity")]
   
   message("Done with LLM_GetPredictions.R call!")
   if(T == F){ 

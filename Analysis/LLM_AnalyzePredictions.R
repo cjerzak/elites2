@@ -1,25 +1,25 @@
 # Script: LLM_AnalyzePredictions.R
 {
-  # ------------------------------------------------------------------------------
   #  - Reads each country's predictions from ./Prediction/*
   #  - Merges them
   #  - Computes metrics overall, by country, and by pred type
   #  - Visualizes confusion matrices
-  # ------------------------------------------------------------------------------
   
-  # Clean workspace (optional)
+  # Clean workspace 
   rm(list=ls())
   setwd("~/Dropbox/APIs/Elites2") ; options(error = NULL)
   LocalGitHubLoc <- "~/Documents/elites2"
+  library(httr);library(jsonlite)
   
   # load in input data 
   source(sprintf('%s/Analysis/LLM_LoadInputData.R',LocalGitHubLoc))
-  
+
   #prediction_dir <- "./SavedResults/Pred-OpenAI-gpt-4o-mini-search-preview-SearchTestParty"
   #prediction_dir <- "./SavedResults/Pred-SearchTestParty-OpenAI-gpt-4o-mini-search-preview"
   #prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-llama-3.1-8b-instant"
   #prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-qwen-qwq-32b"
-  prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-meta-llama_SL_llama-4-scout-17b-16e-instruct"
+  #prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-meta-llama_SL_llama-4-scout-17b-16e-instruct"
+  prediction_dir <- "./SavedResults/Pred-SearchTestParty-CustomLLM-llama-3.1-8b-instant"
 
   analysis_var <- "pol_party"            # column name of target covariate
   pred_name_   <- paste0("predicted_", analysis_var)
@@ -81,6 +81,7 @@
   eval_data <- all_data[!is.na(all_data[[truth_name_]]),]
   
   cbind(all_data[[pred_name_]],all_data[[truth_name_]])
+  plot(1*is.na(all_data$predicted_pol_party))
     
   # drop predictions not in pool of options
   # sum(!eval_data[[pred_name_]] %in% eval_data[[truth_name_]])

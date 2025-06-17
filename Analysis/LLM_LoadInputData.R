@@ -8,7 +8,6 @@
   resp <- try(httr::GET(sprintf("https://huggingface.co/datasets/JerzakLabs/GLP/resolve/main/%s",
                                 person_dat_loc), 
                         add_headers(Authorization = paste("Bearer",Sys.getenv("HF_API_KEY")))),T)
-  httr::stop_for_status(resp) 
   
   # Write to a temporary .dta file and read it into R
   tmp <- try(tempfile(fileext = ".dta"),T)
