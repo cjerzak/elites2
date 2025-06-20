@@ -24,6 +24,7 @@ venv/
 # Data and output directories
 Data/
 SavedResults/
+BashScripts/log/
 
 # Log files
 *.log

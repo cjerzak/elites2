@@ -13,8 +13,9 @@
   analysis_var <- "pol_party"            # column name of target covariate, e.g., pol_party or birth_place
   promptType   <- "BaseSearch"
 
+  LLMProvider <- "CustomLLM"; CustomLLMBackend <- "openai"; modelName <- "gpt-4.1-nano"
   #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "groq"; modelName <- "llama-3.1-8b-instant";
-  LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.1-8b"
+  #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.1-8b"
   #LLMProvider <- "CustomLLM"; CustomLLMBackend <- "exo"; modelName <- "llama-3.2-3b-bf16"
   #LLMProvider <- "CustomLLM"; modelName <- "qwen-qwq-32b"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
   #LLMProvider <- "CustomLLM"; modelName <- "meta-llama/llama-4-scout-17b-16e-instruct"; INITIALIZED_CUSTOM_ENV_TAG <- FALSE
@@ -160,10 +161,11 @@
                                          gsub(modelName, pattern = "\\/", replace= "_SL_")
                                          ), 
                                  showWarnings = FALSE, recursive = TRUE)
+  dir.create(sprintf("%s/traces",output_directory))
   
   # CORE PREDICTION FUNCTION
   # Single-call function that queries ChatGPT (or other LLM) for a single name
-  predict_value <- function(person_name, glp_country) {
+  predict_value <- function(person_name, glp_country, i) {
 
     # Safety: if name is missing or blank
     if (is.na(person_name) || trimws(person_name) == "") {
@@ -362,7 +364,7 @@
         X = todo_idx,
         FUN = function(i) {
           # Predict
-          res <- predict_value(df$person_name[i], df$glp_country[i])
+          res <- predict_value(df$person_name[i], df$glp_country[i], i)
           Sys.sleep( OuterSleep )  # pause to mitigate rapid-fire requests
           pb$tick()
           return(res)
@@ -378,6 +380,8 @@
       ', analysis_var,analysis_var,analysis_var)))
       df[todo_idx,"prompt"] <- unlist(predicted_responses$prompt)
       df[todo_idx,"raw_output"] <- unlist(predicted_responses$raw_output)
+      
+      if(all(is.na(predicted_responses$predicted_value))){browser()}
       
       # View(df[,c("predicted_ethnicity","predicted_ethnicity_explanation","predicted_ethnicity_confidence")])
       # View(df[,c("pol_party", "predicted_party","predicted_party_explanation","predicted_party_confidence")])
@@ -418,7 +422,6 @@
   
   all_results <- list(); for (ctry in names(list_by_country)) {
     message("Processing country: ", ctry)
-    
     df_ctry <- list_by_country[[ctry]]
     out_ctry <- predict_and_save(df_ctry, ctry, output_directory)
     all_results[[ctry]] <- out_ctry
